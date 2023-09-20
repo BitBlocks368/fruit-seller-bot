@@ -1,0 +1,22 @@
+{
+  "name": "fruit-seller-bot",
+  "version": "1.0.0",
+  "description": "Community management, heralds, and announcements",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/BitBlocks368/fruit-seller-bot.git"
+  },
+  "keywords": [
+    "Discord"
+  ],
+  "author": "Scott Collins",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/BitBlocks368/fruit-seller-bot/issues"
+  },
+  "homepage": "https://github.com/BitBlocks368/fruit-seller-bot#readme"
+}
