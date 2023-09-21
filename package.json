@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/BitBlocks368/fruit-seller-bot/issues"
   },
-  "homepage": "https://github.com/BitBlocks368/fruit-seller-bot#readme"
+  "homepage": "https://github.com/BitBlocks368/fruit-seller-bot#readme",
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
 }
