@@ -1,3 +1,5 @@
 .env
 fruit-seller-bot.db
+repeated-good-morrow-messages.json
+good-morrow-messages.json
 *.log

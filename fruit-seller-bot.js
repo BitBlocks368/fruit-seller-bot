@@ -11,6 +11,10 @@ require('dotenv').config();
 // the bot should receive from Discord.
 const { Client, Intents } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+// Load the messages from JSON files
+const gmResponses = JSON.parse(fs.readFileSync('good-morrow-messages.json', 'utf8'));
+const gmRepeatResponses = JSON.parse(fs.readFileSync('repeated-good-morrow-messages.json', 'utf8'));
 
 // Create new Intents object and assign to the
 // constant intents. This object is constructed with an
@@ -48,15 +52,16 @@ let db = new sqlite3.Database('./fruit-seller-bot.db', (err) => {
   });
   
   // Create a table to store user IDs and timestamps.
-  db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT, timestamp INTEGER)`);
+   db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT, timestamp INTEGER, warned INTEGER)`);
 
 // Set event listener for the ready event.
 // This event is emitted when the client becomes ready to start working.
-// When event is triggered, it will log to the console the tag
-// (username and discriminator, e.g., BotName#1234) of the bot.
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
 });
+
+let responsesCounter = 0;
+let gmCounter = 0;
 
 // Event listener for the 'messageCreate' event, which is emitted every time
 // a new message is sent in any channel the bot has access to. 
@@ -75,28 +80,32 @@ client.on('messageCreate', message => {
         }
     }
 
-    if (message.content.toLowerCase() === 'gm') {
-      const userId = message.author.id;
-      const now = Date.now();
-  
-      // Fetch the last timestamp from the database for the user.
-      db.get(`SELECT timestamp FROM users WHERE userId = ?`, [userId], (err, row) => {
-        if (err) {
-          return console.error(err.message);
+    if (/^gm/i.test(message.content)) {
+        const userId = message.author.id;
+        const now = Date.now();
+      
+        db.get(`SELECT timestamp, warned FROM users WHERE userId = ?`, [userId], (err, row) => {
+            if (err) {
+                return console.error(err.message);
+            }
+            
+            const twentyFourHours = 24 * 60 * 60 * 1000;
+            const lastTimestamp = row ? row.timestamp : 0;
+            const warned = row ? row.warned : 0;
+            
+            if (now - lastTimestamp >= twentyFourHours) {
+                message.channel.send(gmResponses[gmCounter]);
+                gmCounter = (gmCounter + 1) % gmResponses.length;
+                db.run(`REPLACE INTO users (userId, timestamp, warned) VALUES (?, ?, ?)`, [userId, now, 0]);
+            } else {
+                if (warned === 0) {
+                    message.channel.send(gmRepeatResponses[responsesCounter]);
+                    db.run(`UPDATE users SET warned = 1 WHERE userId = ?`, [userId]);
+                    responsesCounter = (responsesCounter + 1) % gmRepeatResponses.length;
+                }
+            }
+        });
         }
-        
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        const lastTimestamp = row ? row.timestamp : 0;
-        
-        if (now - lastTimestamp >= twentyFourHours) {
-          message.channel.send('Good morrow, dear friend!');
-          // Update or insert the new timestamp to the database.
-          db.run(`REPLACE INTO users (userId, timestamp) VALUES (?, ?)`, [userId, now]);
-        } else {
-          message.channel.send('Patience, dear heart. Let us meet again on the morrow with fresh smiles!');
-        }
-      });
-    }
   });
 
 // Log client (bot) into Discord using the token stored in the
