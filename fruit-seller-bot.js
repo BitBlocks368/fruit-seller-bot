@@ -5,11 +5,6 @@
 // via process.env.VARIABLE_NAME.
 require('dotenv').config();
 
-// UPDATED TO INCLUDE INTENTS
-// Import Client class from discord.js library.
-// Client is the main hub class for interacting with the Discord API.
-// const { Client } = require('discord.js');
-
 // Import Client and Intents classes from discord.js library.
 // The Client class is used to interact with the Discord API,
 // while the Intents class is used to specify which events
@@ -26,23 +21,20 @@ const { Client, Intents } = require('discord.js');
 // events in servers (i.e., when a message is sent in a server the
 // bot is in).
 // List the intents your bot needs:
-const myIntents = new Intents([
-    Intents.FLAGS.GUILDS,
-    Intents.FLAGS.GUILD_MESSAGES
-]);
+ const intents = new Intents([
+     Intents.FLAGS.GUILDS,
+     Intents.FLAGS.GUILD_MESSAGES
+ ]);
+
+// const intents = new Intents();
+// intents.add(Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES);
 
 // Create new instance of the Client class, using the myIntents object
 // created earlier to inform Discord which events the bot is 
 // interested in receiving. This client object is your gateway to
 // interacting with the Discord API. It can be used to log in to
 // Discord, listen for events, send messages, and more.
-const client = new Client({ intents: myIntents });
-
-// UPDATED TO INCLUDE INTENTS
-// Create new instance of the Client class.
-// This instance (client) will be your primary interface for
-// interacting with the Discord API.
-// const client = new Client();
+const client = new Client({ intents: intents });
 
 // Set the TOKEN constant to the value of 
 // DISCORD_BOT_TOKEN environment variable, 
@@ -67,12 +59,34 @@ client.on('ready', () => {
 // exactly matches the string 'gm'. 
 // If it does, the bot sends 'GM' to the same channel
 // where the original message was sent.
-client.on('message', message => {
-    if (message.author.bot) return;
-    if (message.content.toLowerCase() === 'gm') {
-        message.channel.send('GM');
-    }
-});
+// client.on('messageCreate', message => {
+    // console.log(`Received message: ${message.content} from ${message.author.tag}`);
+    // console.log(`Message content: ${message.content}`); // Logging only the message content
+    // if (message.author.bot) return; // Ignore messages from bots
+    // if (message.content.toLowerCase() === 'gm') {
+    //     message.channel.send('GM'); // Send 'GM' to the same channel where the message was received
+    // }
+// });
+
+ client.on('messageCreate', (message) => {
+     if (message.author.bot) return; // Ignore messages from bots
+     
+     if (message.content) {
+         console.log(`Received message: ${message.content} from ${message.author.tag}`);
+     } else {
+         console.log(`Received a message with no text content from ${message.author.tag}`);
+         if (message.attachments.size > 0) {
+             console.log('Message has attachments:', message.attachments);
+         }
+         if (message.embeds.length > 0) {
+             console.log('Message has embeds:', message.embeds);
+         }
+     }
+     
+     if (message.content && message.content.toLowerCase() === 'gm') {
+         message.channel.send('GM'); // Send 'GM' to the same channel where the message was received
+     }
+ });
 
 // Log client (bot) into Discord using the token stored in the
 // TOKEN constant. This begins the connection process and

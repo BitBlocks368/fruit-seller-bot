@@ -20,7 +20,10 @@
   },
   "homepage": "https://github.com/BitBlocks368/fruit-seller-bot#readme",
   "dependencies": {
-    "discord.js": "^14.13.0",
+    "discord.js": "^13.3.1",
     "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.49.0"
   }
 }
