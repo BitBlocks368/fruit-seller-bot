@@ -10,6 +10,7 @@ require('dotenv').config();
 // while the Intents class is used to specify which events
 // the bot should receive from Discord.
 const { Client, Intents } = require('discord.js');
+const sqlite3 = require('sqlite3').verbose();
 
 // Create new Intents object and assign to the
 // constant intents. This object is constructed with an
@@ -38,6 +39,17 @@ const client = new Client({ intents: intents });
 // loaded from your .env file using dotenv.
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
+// Open a SQLite Database.
+let db = new sqlite3.Database('./fruit-seller-bot.db', (err) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log('Connected to the users database.');
+  });
+  
+  // Create a table to store user IDs and timestamps.
+  db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT, timestamp INTEGER)`);
+
 // Set event listener for the ready event.
 // This event is emitted when the client becomes ready to start working.
 // When event is triggered, it will log to the console the tag
@@ -48,32 +60,32 @@ client.on('ready', () => {
 
 // Event listener for the 'messageCreate' event, which is emitted every time
 // a new message is sent in any channel the bot has access to. 
-client.on('messageCreate', (message) => {
-    // 1. Ignore messages from bots to prevent responding to other bots
-    //    which could potentially lead to infinite loops of messages between bots.
+cclient.on('messageCreate', message => {
     if (message.author.bot) return;
-    // 2. Log the received message to the console, specifying whether the message
-    //    has text content, attachments, or embeds.
-    if (message.content) {
-        console.log(`Received message: ${message.content} from ${message.author.tag}`);
-    } else {
-        console.log(`Received a message with no text content from ${message.author.tag}`);    
-        // Check if the message has attachments and log them if they exist
-        if (message.attachments.size > 0) {
-            console.log('Message has attachments:', message.attachments);
+    
+    if (message.content.toLowerCase() === 'gm') {
+      const userId = message.author.id;
+      const now = Date.now();
+  
+      // Fetch the last timestamp from the database for the user.
+      db.get(`SELECT timestamp FROM users WHERE userId = ?`, [userId], (err, row) => {
+        if (err) {
+          return console.error(err.message);
         }
-        // Check if the message has embeds and log them if they exist
-        if (message.embeds.length > 0) {
-            console.log('Message has embeds:', message.embeds);
+        
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        const lastTimestamp = row ? row.timestamp : 0;
+        
+        if (now - lastTimestamp >= twentyFourHours) {
+          message.channel.send('Good morrow, dear friend!');
+          // Update or insert the new timestamp to the database.
+          db.run(`REPLACE INTO users (userId, timestamp) VALUES (?, ?)`, [userId, now]);
+        } else {
+          message.channel.send('Patience, dear heart. Let us meet again on the morrow with fresh smiles!');
         }
+      });
     }
-    // 3. Respond to specific messages:
-    //    If the content of the received message, converted to lowercase, matches the string 'gm', 
-    //    the bot sends a 'GM' message to the same channel where the original message was received.
-    if (message.content && message.content.toLowerCase() === 'gm') {
-        message.channel.send('GM');
-    }
-});
+  });
 
 // Log client (bot) into Discord using the token stored in the
 // TOKEN constant. This begins the connection process and
