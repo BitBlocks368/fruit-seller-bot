@@ -1,2 +1,2 @@
-fruit-seller-bot-token.env
+.env
 *.log
