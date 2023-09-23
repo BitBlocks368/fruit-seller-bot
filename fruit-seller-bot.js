@@ -60,9 +60,21 @@ client.on('ready', () => {
 
 // Event listener for the 'messageCreate' event, which is emitted every time
 // a new message is sent in any channel the bot has access to. 
-cclient.on('messageCreate', message => {
-    if (message.author.bot) return;
+client.on('messageCreate', message => {
+    if (message.author.bot) return; // Ignore messages from bots
     
+    if (message.content) {
+        console.log(`Received message: ${message.content}. From ${message.author.tag}`);
+    } else {
+        console.log(`Received a message with no text content from ${message.author.tag}`);
+        if (message.attachments.size > 0) {
+            console.log('Message has attachments:', message.attachments);
+        }
+        if (message.embeds.length > 0) {
+            console.log('Message has embeds:', message.embeds);
+        }
+    }
+
     if (message.content.toLowerCase() === 'gm') {
       const userId = message.author.id;
       const now = Date.now();
