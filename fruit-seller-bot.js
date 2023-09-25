@@ -15,6 +15,7 @@ const fs = require('fs');
 // Load the messages from JSON files
 const gmResponses = JSON.parse(fs.readFileSync('good-morrow-messages.json', 'utf8'));
 const gmRepeatResponses = JSON.parse(fs.readFileSync('repeated-good-morrow-messages.json', 'utf8'));
+const positiveAffirmations = JSON.parse(fs.readFileSync('positiveAffirmations.json', 'utf8'));
 
 // Create new Intents object and assign to the
 // constant intents. This object is constructed with an
@@ -52,7 +53,7 @@ let db = new sqlite3.Database('./fruit-seller-bot.db', (err) => {
   });
   
   // Create a table to store user IDs and timestamps.
-   db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT, timestamp INTEGER, warned INTEGER)`);
+  db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT PRIMARY KEY, timestamp INTEGER, state INTEGER DEFAULT 0, warned INTEGER)`);
 
 // Set event listener for the ready event.
 // This event is emitted when the client becomes ready to start working.
@@ -84,29 +85,40 @@ client.on('messageCreate', message => {
         const userId = message.author.id;
         const now = Date.now();
          
-        db.get(`SELECT timestamp, warned FROM users WHERE userId = ?`, [userId], (err, row) => {
+        db.get(`SELECT timestamp, state FROM users WHERE userId = ?`, [userId], (err, row) => {
             if (err) {
                 return console.error(err.message);
             }
             
             const twentyFourHours = 24 * 60 * 60 * 1000;
             const lastTimestamp = row ? row.timestamp : 0;
-            const warned = row ? row.warned : 0;
+            const state = row ? row.state : 0;
             
-            if (now - lastTimestamp >= twentyFourHours) {
-                message.channel.send(`GM <@${message.author.id}>! ${gmResponses[gmCounter]}`);
-                gmCounter = (gmCounter + 1) % gmResponses.length;
-                db.run(`REPLACE INTO users (userId, timestamp, warned) VALUES (?, ?, ?)`, [userId, now, 0]);
+            if (now - lastTimestamp >= twentyFourHours || !row) {
+                message.channel.send(`GM <@${message.author.id}>! ${gmResponses[gmCounter % gmResponses.length]}`);
+                gmCounter++;
+                db.run(`REPLACE INTO users (userId, timestamp, state) VALUES (?, ?, ?)`, [userId, now, 1]);
             } else {
-                if (warned === 0) {
-                    message.channel.send(gmRepeatResponses[responsesCounter]);
-                    db.run(`UPDATE users SET warned = 1 WHERE userId = ?`, [userId]);
-                    responsesCounter = (responsesCounter + 1) % gmRepeatResponses.length;
+                switch (state) {
+                    case 1: // Initial GM state
+                        if (message.content.toLowerCase().includes(`gm <@${client.user.id}>`)) {
+                            message.channel.send(positiveAffirmations[Math.floor(Math.random() * positiveAffirmations.length)]);
+                            db.run(`UPDATE users SET state = 2 WHERE userId = ?`, [userId]);
+                        }
+                        break;
+                    case 2: // GM targeted at bot state
+                        message.channel.send(gmRepeatResponses[gmCounter % gmRepeatResponses.length]);
+                        gmCounter++;
+                        db.run(`UPDATE users SET state = 3 WHERE userId = ?`, [userId]);
+                        break;
+                    case 3: // After receiving repeated GM
+                        // All further GMs are ignored
+                        break;
                 }
             }
         });
-        }
-  });
+    }
+});
 
 // Log client (bot) into Discord using the token stored in the
 // TOKEN constant. This begins the connection process and
