@@ -83,7 +83,7 @@ client.on('messageCreate', message => {
     if (/^gm/i.test(message.content)) {
         const userId = message.author.id;
         const now = Date.now();
-      
+         
         db.get(`SELECT timestamp, warned FROM users WHERE userId = ?`, [userId], (err, row) => {
             if (err) {
                 return console.error(err.message);
@@ -94,7 +94,7 @@ client.on('messageCreate', message => {
             const warned = row ? row.warned : 0;
             
             if (now - lastTimestamp >= twentyFourHours) {
-                message.channel.send(gmResponses[gmCounter]);
+                message.channel.send(`GM <@${message.author.id}>! ${gmResponses[gmCounter]}`);
                 gmCounter = (gmCounter + 1) % gmResponses.length;
                 db.run(`REPLACE INTO users (userId, timestamp, warned) VALUES (?, ?, ?)`, [userId, now, 0]);
             } else {
