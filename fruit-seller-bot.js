@@ -59,7 +59,7 @@ let db = new sqlite3.Database('./fruit-seller-bot.db', (err) => {
     console.log('Connected to the users database.');
   });
     // Create a table to store user IDs and timestamps.
-  db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT PRIMARY KEY, timestamp INTEGER, state INTEGER DEFAULT 0, warned INTEGER)`);
+    db.run(`CREATE TABLE IF NOT EXISTS users (userId TEXT PRIMARY KEY, timestamp INTEGER, state INTEGER DEFAULT 0, warned INTEGER, day_asked_timestamp INTEGER DEFAULT 0)`);
 
 // Set event listener for the ready event.
 // This event is emitted when the client becomes ready to start working.
@@ -125,16 +125,47 @@ client.on('messageCreate', message => {
     // The "tell me about your day" mention check
     if (message.mentions.users.has(client.user.id)) {
         const withoutMention = message.content.replace(/<@!?[0-9]+>/, '').trim();
+        const userId = message.author.id;
+        const now = Date.now();
+    
         if (withoutMention.toLowerCase() === 'tell me about your day') {
-            message.reply(`I'll tell you a little of my day. ${getRandomStorySentence()}`);
+            db.get(`SELECT day_asked_timestamp, state FROM users WHERE userId = ?`, [userId], (err, row) => {
+                if (err) {
+                    return console.error(err.message);
+                }
+    
+                const twentyFourHours = 24 * 60 * 60 * 1000;
+                const lastDayAskedTimestamp = row ? row.day_asked_timestamp : 0;
+                const state = row ? row.state : 0;
+    
+                if (!row || now - lastDayAskedTimestamp >= twentyFourHours) {
+                    message.reply(`I'll tell you a little of my day. ${getRandomStorySentence()}`);
+                    db.run(`REPLACE INTO users (userId, day_asked_timestamp, state) VALUES (?, ?, ?)`, [userId, now, 4]);
+                } else {
+                    switch (state) {
+                        case 4: // Initial "tell me about your day" state
+                            message.reply('Wait til the morrow and I shall tell thee a little more.');
+                            db.run(`UPDATE users SET state = 5 WHERE userId = ?`, [userId]);
+                            break;
+                        case 5: // After receiving repeated "tell me about your day"
+                            // All further requests are ignored for 24 hours
+                            break;
+                    }
+                }
+            });
         }
     }
+    
+    
 });
 
 // client.once('ready', () => {
 //    
 //     console.log('Bot is ready!');    // Fetch the guild by ID (replace YOUR_GUILD_ID with the actual guild ID)
-//     const guild = client.guilds.cache.get('863981449912123393');
+
+// const GUILD_ID = process.env.DISCORD_GUILD_ID;
+// const guild = client.guilds.cache.get(GUILD_ID);
+
 //
 //     Check if the guild exists
 //     
